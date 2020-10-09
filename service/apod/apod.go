@@ -110,23 +110,42 @@ func (a *Apod) appendTextToJpg(w io.Writer, r io.Reader) error {
 	draw.Draw(bitmap, bitmap.Bounds(), img, imgBound.Min, draw.Src)
 
 	fmt.Printf("Adding text to canvas:\n%s\n", a.Explanation)
+	startX := fixed.Int26_6(64*imgBound.Dx()) / 2
+	startY := fixed.Int26_6(64*imgBound.Dy()) / 2
 	d := &font.Drawer{
 		Dst:  bitmap,
 		Src:  image.NewUniform(color.White),
 		Face: basicfont.Face7x13,
 		Dot: fixed.Point26_6{
-			X: fixed.Int26_6(64*imgBound.Dx()) / 2,
-			Y: fixed.Int26_6(64*imgBound.Dy()) / 2,
+			X: startX,
+			Y: startY,
 		},
 	}
-	measure := d.MeasureString(a.Explanation)
 
-	countRows := int(measure / (fixed.Int26_6(64*imgBound.Dy()) / 2))
-	fmt.Printf("Text measure: %v\nRows needed: %v\n", measure, countRows)
-	// Todo: devide into x lines and print those
-
-	d.DrawString(a.Explanation)
+	drawRows(d, 13, imgBound.Dy(), startX, startY, a.Explanation)
 
 	fmt.Println("Encoding new image as jpeg")
 	return jpeg.Encode(w, bitmap, &jpeg.Options{Quality: 95})
+}
+
+func drawRows(d *font.Drawer, fontHeight, imgDy int, startX, startY fixed.Int26_6, label string) {
+
+	measure := d.MeasureString(label)
+	countRows := int(measure / (fixed.Int26_6(64*imgDy) / 2))
+	fmt.Printf("Text measure: %v\nRows needed: %v\n", measure, countRows)
+	if countRows <= 1 {
+		d.DrawString(label)
+		return
+	}
+
+	letters := int(len(label) / countRows)
+	for i := 0; i <= countRows; i++ {
+		d.Dot.Y = startY + (fixed.Int26_6(i) * fixed.Int26_6(64*(fixed.Int26_6(fontHeight))))
+		d.Dot.X = startX
+		if i == countRows {
+			d.DrawString(label[i*letters:])
+		} else {
+			d.DrawString(label[i*letters : (i+1)*letters])
+		}
+	}
 }
