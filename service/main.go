@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	// while develop
+	os.Setenv("APOD_LOCAL_STORE_LOCATION", "c:\\temp\\")
 	storagelocation := os.Getenv("APOD_LOCAL_STORE_LOCATION")
 	if storagelocation == "" {
 		log.Fatalln("no storage location defined")
@@ -23,6 +25,7 @@ func main() {
 	} else {
 		params.Add("api_key", "DEMO_KEY")
 	}
+	params.Add("hd", "True")
 
 	uri := "https://api.nasa.gov/planetary/apod?" + params.Encode()
 
