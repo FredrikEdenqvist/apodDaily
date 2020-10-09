@@ -23,6 +23,7 @@ func main() {
 	} else {
 		params.Add("api_key", "DEMO_KEY")
 	}
+	params.Add("hd", "True")
 
 	uri := "https://api.nasa.gov/planetary/apod?" + params.Encode()
 
