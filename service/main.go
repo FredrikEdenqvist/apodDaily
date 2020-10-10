@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	//os.Setenv("APOD_LOCAL_STORE_LOCATION", "c:\\temp\\")
+	os.Setenv("APOD_LOCAL_STORE_LOCATION", "c:\\temp\\")
 	storagelocation := os.Getenv("APOD_LOCAL_STORE_LOCATION")
 	if storagelocation == "" {
 		log.Fatalln("no storage location defined")

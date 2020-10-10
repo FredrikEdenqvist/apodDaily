@@ -109,7 +109,6 @@ func (a *Apod) appendTextToJpg(w io.Writer, r io.Reader) error {
 	fmt.Println("Painting image")
 	draw.Draw(bitmap, bitmap.Bounds(), img, imgBound.Min, draw.Src)
 
-	fmt.Println("Adding text to canvas")
 	startX := fixed.Int26_6(100 << 6)
 	startY := fixed.Int26_6(100 << 6)
 	d := &font.Drawer{
@@ -122,36 +121,41 @@ func (a *Apod) appendTextToJpg(w io.Writer, r io.Reader) error {
 		},
 	}
 
-	drawRows(d, 13, imgBound.Dy(), startX, startY, a.Explanation)
+	measure := d.MeasureString(a.Explanation)
+	countRows := int(measure / (fixed.Int26_6((imgBound.Dx() / 2) << 6)))
+	lettersPerRow := int(len(a.Explanation) / countRows)
+	contentRows := getStrings(lettersPerRow, a.Explanation)
+	maxWidth := int(getMaxMeasure(contentRows, d) >> 6)
+	fontHeight := 13
+	rectMaxX := maxWidth + 103
+	rectMaxY := 113 + (fontHeight * countRows)
+
+	textBackgound := image.Rect(87, 83, rectMaxX, rectMaxY)
+	bgcolor := color.RGBA{50, 50, 50, 128}
+	fmt.Println("Drawing text background")
+	draw.Draw(bitmap, textBackgound, &image.Uniform{bgcolor}, image.ZP, draw.Src)
+
+	fmt.Println("Adding text to canvas")
+	drawRows(d, fontHeight, startX, startY, contentRows)
 
 	fmt.Println("Encoding new image as jpeg")
 	return jpeg.Encode(w, bitmap, &jpeg.Options{Quality: 95})
 }
 
-func drawRows(d *font.Drawer, fontHeight, imgDy int, startX, startY fixed.Int26_6, label string) {
-
-	measure := d.MeasureString(label)
-	countRows := int(measure / (fixed.Int26_6(imgDy<<6) / 2))
-	fmt.Printf("Text measure: %v\nRows needed: %v\n", measure, countRows)
-	if countRows <= 1 {
-		d.DrawString(label)
-		return
-	}
-
-	letters := int(len(label) / countRows)
-	for i, row := range getStringSlicesWith(letters, label) {
+func drawRows(d *font.Drawer, fontHeight int, startX, startY fixed.Int26_6, labels []string) {
+	for i, row := range labels {
 		d.Dot.Y = startY + (fixed.Int26_6(i) * fixed.Int26_6(fontHeight<<6))
 		d.Dot.X = startX
 		d.DrawString(row)
 	}
 }
 
-func getStringSlicesWith(maxRunes int, paragraph string) []string {
+func getStrings(maxRunes int, paragraph string) []string {
 	words := strings.Fields(paragraph)
 	stringBuilder := strings.Builder{}
 	lines := []string{}
 	for _, word := range words {
-		if stringBuilder.Len()+len(word) <= maxRunes {
+		if stringBuilder.Len()+len(word) < maxRunes {
 			stringBuilder.WriteString(word)
 		} else {
 			lines = append(lines, stringBuilder.String())
@@ -163,4 +167,16 @@ func getStringSlicesWith(maxRunes int, paragraph string) []string {
 	lines = append(lines, stringBuilder.String())
 
 	return lines
+}
+
+func getMaxMeasure(s []string, d *font.Drawer) fixed.Int26_6 {
+	maxMeasure := fixed.Int26_6(0)
+	for _, l := range s {
+		m := d.MeasureString(l)
+		if m > maxMeasure {
+			maxMeasure = m
+		}
+	}
+
+	return maxMeasure
 }
