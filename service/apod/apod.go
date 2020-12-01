@@ -104,7 +104,8 @@ func (a *Apod) appendTextToJpg(w io.Writer, r io.Reader) error {
 
 	fmt.Println("Creating RGBA canvas big as the image")
 	imgBound := img.Bounds()
-	bitmap := image.NewRGBA(image.Rect(0, 0, imgBound.Dx(), imgBound.Dy()))
+	imageSize := imgBound.Size()
+	bitmap := image.NewRGBA(image.Rect(0, 0, imageSize.X, imageSize.Y))
 
 	fmt.Println("Painting image")
 	draw.Draw(bitmap, bitmap.Bounds(), img, imgBound.Min, draw.Src)
@@ -122,7 +123,7 @@ func (a *Apod) appendTextToJpg(w io.Writer, r io.Reader) error {
 	}
 
 	measure := d.MeasureString(a.Explanation)
-	countRows := int(measure / (fixed.Int26_6((imgBound.Dx() / 2) << 6)))
+	countRows := int(measure / (fixed.Int26_6(((imageSize.X - 100) / 2) << 6)))
 	lettersPerRow := int(len(a.Explanation) / countRows)
 	contentRows := getStrings(lettersPerRow, a.Explanation)
 	maxWidth := int(getMaxMeasure(contentRows, d) >> 6)
